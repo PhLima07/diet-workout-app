@@ -69,3 +69,56 @@ def test_update_profile():
 def test_get_nonexistent_profile():
     resp = client.get("/profile/999")
     assert resp.status_code == 404
+
+# ── Diet router ──────────────────────────────────────────────────────────────
+
+from unittest.mock import patch, AsyncMock
+
+def test_generate_diet_requires_existing_profile():
+    resp = client.post("/diet/generate", json={"user_id": 999, "days": 7, "meals_per_day": 4})
+    assert resp.status_code == 404
+
+def test_generate_diet_saves_and_returns_plan():
+    client.post("/profile/", json={
+        "name": "Pedro", "age": 21, "weight_kg": 75.0, "height_cm": 178.0,
+        "goal": "ganhar massa", "dietary_restrictions": "", "fitness_level": "intermediário"
+    })
+    with patch("routers.diet.generate_diet_plan", new_callable=AsyncMock) as mock_gen, \
+         patch("routers.diet.search_foods", new_callable=AsyncMock) as mock_foods:
+        mock_foods.return_value = []
+        mock_gen.return_value = "# Dieta gerada\nDia 1: ..."
+        resp = client.post("/diet/generate", json={"user_id": 1, "days": 7, "meals_per_day": 4})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["content"] == "# Dieta gerada\nDia 1: ..."
+    assert data["user_id"] == 1
+    assert data["id"] == 1
+
+def test_diet_history_lists_plans():
+    client.post("/profile/", json={
+        "name": "Pedro", "age": 21, "weight_kg": 75.0, "height_cm": 178.0,
+        "goal": "ganhar massa", "dietary_restrictions": "", "fitness_level": "intermediário"
+    })
+    with patch("routers.diet.generate_diet_plan", new_callable=AsyncMock) as mock_gen, \
+         patch("routers.diet.search_foods", new_callable=AsyncMock) as mock_foods:
+        mock_foods.return_value = []
+        mock_gen.return_value = "# Dieta"
+        client.post("/diet/generate", json={"user_id": 1, "days": 7, "meals_per_day": 4})
+        client.post("/diet/generate", json={"user_id": 1, "days": 3, "meals_per_day": 3})
+    resp = client.get("/diet/history/1")
+    assert resp.status_code == 200
+    assert len(resp.json()) == 2
+
+def test_get_diet_plan_by_id():
+    client.post("/profile/", json={
+        "name": "Pedro", "age": 21, "weight_kg": 75.0, "height_cm": 178.0,
+        "goal": "ganhar massa", "dietary_restrictions": "", "fitness_level": "intermediário"
+    })
+    with patch("routers.diet.generate_diet_plan", new_callable=AsyncMock) as mock_gen, \
+         patch("routers.diet.search_foods", new_callable=AsyncMock) as mock_foods:
+        mock_foods.return_value = []
+        mock_gen.return_value = "# Dieta"
+        client.post("/diet/generate", json={"user_id": 1, "days": 7, "meals_per_day": 4})
+    resp = client.get("/diet/1")
+    assert resp.status_code == 200
+    assert resp.json()["id"] == 1
