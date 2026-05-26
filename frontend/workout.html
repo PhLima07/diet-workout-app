@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Treino — Planner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="profile.html">Perfil</a>
+    <a href="diet.html">Dieta</a>
+    <a href="workout.html" class="active">Treino</a>
+    <a href="history.html">Histórico</a>
+  </nav>
+  <div class="container">
+    <h1>Gerar Plano de Treino</h1>
+    <div class="card" style="background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.3)">
+      <p style="color:#fbbf24;font-size:0.85rem">⚠️ <strong>Aviso:</strong> Este plano é gerado por IA para uso pessoal e informativo. Consulte um profissional de educação física antes de iniciar um novo programa de treino.</p>
+    </div>
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label>Dias de treino por semana</label>
+          <select id="days_per_week">
+            <option value="2">2 dias</option>
+            <option value="3">3 dias</option>
+            <option value="4" selected>4 dias</option>
+            <option value="5">5 dias</option>
+          </select>
+        </div>
+        <div>
+          <label>Foco (opcional)</label>
+          <input type="text" id="focus" placeholder="ex: hipertrofia, força, cardio (vazio = usa seu objetivo)">
+        </div>
+      </div>
+      <button id="generateBtn">Gerar Treino com Claude + ExerciseDB</button>
+      <p id="status"></p>
+    </div>
+    <div id="result" style="display:none" class="card">
+      <h2 style="margin-bottom:1rem">Plano Gerado</h2>
+      <div id="planContent" class="prose"></div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="api.js"></script>
+  <script>
+    document.getElementById("generateBtn").addEventListener("click", async () => {
+      const profileId = localStorage.getItem("profile_id");
+      const btn = document.getElementById("generateBtn");
+      const status = document.getElementById("status");
+
+      if (!profileId) {
+        status.textContent = "Cadastre seu perfil primeiro!";
+        status.className = "msg-error";
+        return;
+      }
+
+      btn.disabled = true;
+      status.textContent = "Buscando exercícios e gerando com Claude... (pode levar ~30s)";
+      status.className = "loading";
+      document.getElementById("result").style.display = "none";
+
+      try {
+        const data = await apiPost("/workout/generate", {
+          user_id: parseInt(profileId),
+          days_per_week: parseInt(document.getElementById("days_per_week").value),
+          focus: document.getElementById("focus").value,
+        });
+        document.getElementById("planContent").innerHTML = marked.parse(data.content);
+        document.getElementById("result").style.display = "block";
+        status.textContent = `Plano gerado! Foco: ${data.focus}`;
+        status.className = "msg-success";
+      } catch (err) {
+        status.textContent = err.message;
+        status.className = "msg-error";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

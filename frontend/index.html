@@ -1,1 +1,69 @@
-<!DOCTYPE html><html><body>placeholder</body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diet & Workout Planner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="active">Dashboard</a>
+    <a href="profile.html">Perfil</a>
+    <a href="diet.html">Dieta</a>
+    <a href="workout.html">Treino</a>
+    <a href="history.html">Histórico</a>
+  </nav>
+  <div class="container">
+    <h1>Diet & Workout Planner</h1>
+    <div id="noProfile" style="display:none" class="card">
+      <p>Bem-vindo! <a href="profile.html" style="color:var(--primary);font-weight:600">Cadastre seu perfil</a> para começar a gerar planos personalizados.</p>
+    </div>
+    <div id="profileCard" style="display:none" class="card">
+      <h2 id="greeting" style="margin-bottom:0.4rem"></h2>
+      <p id="profileSummary" style="color:var(--muted);font-size:0.9rem"></p>
+      <a href="profile.html" style="font-size:0.85rem;color:var(--primary);display:inline-block;margin-top:0.5rem">Editar perfil →</a>
+    </div>
+    <div id="actions" style="display:none">
+      <div class="grid-2" style="margin-top:0.5rem">
+        <a href="diet.html">
+          <div class="card" style="text-align:center;cursor:pointer">
+            <div style="font-size:2rem;margin-bottom:0.5rem">🥗</div>
+            <h3>Gerar Dieta</h3>
+            <p style="color:var(--muted);margin-top:0.3rem;font-size:0.875rem">Plano alimentar personalizado com dados USDA</p>
+          </div>
+        </a>
+        <a href="workout.html">
+          <div class="card" style="text-align:center;cursor:pointer">
+            <div style="font-size:2rem;margin-bottom:0.5rem">💪</div>
+            <h3>Gerar Treino</h3>
+            <p style="color:var(--muted);margin-top:0.3rem;font-size:0.875rem">Programa de exercícios com ExerciseDB</p>
+          </div>
+        </a>
+      </div>
+      <p style="text-align:center;margin-top:1rem">
+        <a href="history.html" style="color:var(--muted);font-size:0.875rem">Ver histórico de planos gerados →</a>
+      </p>
+    </div>
+  </div>
+  <script src="api.js"></script>
+  <script>
+    const profileId = localStorage.getItem("profile_id");
+    if (!profileId) {
+      document.getElementById("noProfile").style.display = "block";
+    } else {
+      apiGet(`/profile/${profileId}`).then(d => {
+        const bmi = (d.weight_kg / ((d.height_cm / 100) ** 2)).toFixed(1);
+        document.getElementById("greeting").textContent = `Olá, ${d.name}!`;
+        document.getElementById("profileSummary").textContent =
+          `${d.weight_kg}kg · ${d.height_cm}cm · IMC ${bmi} · ${d.fitness_level} · Objetivo: ${d.goal}`;
+        document.getElementById("profileCard").style.display = "block";
+        document.getElementById("actions").style.display = "block";
+      }).catch(() => {
+        localStorage.removeItem("profile_id");
+        document.getElementById("noProfile").style.display = "block";
+      });
+    }
+  </script>
+</body>
+</html>

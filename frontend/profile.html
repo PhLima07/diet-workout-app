@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil — Planner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="profile.html" class="active">Perfil</a>
+    <a href="diet.html">Dieta</a>
+    <a href="workout.html">Treino</a>
+    <a href="history.html">Histórico</a>
+  </nav>
+  <div class="container">
+    <h1>Meu Perfil</h1>
+    <div class="card">
+      <form id="profileForm">
+        <div class="grid-2">
+          <div><label>Nome</label><input type="text" id="name" required></div>
+          <div><label>Idade</label><input type="number" id="age" min="10" max="100" required></div>
+          <div><label>Peso (kg)</label><input type="number" id="weight_kg" step="0.1" min="30" required></div>
+          <div><label>Altura (cm)</label><input type="number" id="height_cm" step="0.1" min="100" required></div>
+        </div>
+        <label>Objetivo</label>
+        <input type="text" id="goal" placeholder="ex: ganhar massa muscular, perder 5kg, condicionamento" required>
+        <label>Restrições alimentares</label>
+        <input type="text" id="dietary_restrictions" placeholder="ex: sem lactose, vegetariano (vazio se nenhuma)">
+        <label>Nível de condicionamento</label>
+        <select id="fitness_level">
+          <option value="iniciante">Iniciante</option>
+          <option value="intermediário">Intermediário</option>
+          <option value="avançado">Avançado</option>
+        </select>
+        <label>Sexo biológico</label>
+        <select id="sex">
+          <option value="masculino">Masculino</option>
+          <option value="feminino">Feminino</option>
+        </select>
+        <label>Equipamentos disponíveis</label>
+        <input type="text" id="available_equipment" placeholder="ex: halteres, barra, elástico (vazio = sem equipamento)">
+        <button type="submit" id="saveBtn">Salvar Perfil</button>
+        <p id="msg"></p>
+      </form>
+    </div>
+  </div>
+  <script src="api.js"></script>
+  <script>
+    const KEY = "profile_id";
+    const profileId = localStorage.getItem(KEY);
+
+    async function loadProfile() {
+      if (!profileId) return;
+      try {
+        const d = await apiGet(`/profile/${profileId}`);
+        document.getElementById("name").value = d.name;
+        document.getElementById("age").value = d.age;
+        document.getElementById("weight_kg").value = d.weight_kg;
+        document.getElementById("height_cm").value = d.height_cm;
+        document.getElementById("goal").value = d.goal;
+        document.getElementById("dietary_restrictions").value = d.dietary_restrictions;
+        document.getElementById("fitness_level").value = d.fitness_level;
+        document.getElementById("sex").value = d.sex || "masculino";
+        document.getElementById("available_equipment").value = d.available_equipment || "";
+      } catch (_) {}
+    }
+
+    document.getElementById("profileForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("saveBtn");
+      const msg = document.getElementById("msg");
+      btn.disabled = true;
+      msg.textContent = "";
+      const body = {
+        name: document.getElementById("name").value,
+        age: parseInt(document.getElementById("age").value),
+        weight_kg: parseFloat(document.getElementById("weight_kg").value),
+        height_cm: parseFloat(document.getElementById("height_cm").value),
+        goal: document.getElementById("goal").value,
+        dietary_restrictions: document.getElementById("dietary_restrictions").value,
+        fitness_level: document.getElementById("fitness_level").value,
+        sex: document.getElementById("sex").value,
+        available_equipment: document.getElementById("available_equipment").value,
+      };
+      try {
+        const data = profileId
+          ? await apiPut(`/profile/${profileId}`, body)
+          : await apiPost("/profile/", body);
+        localStorage.setItem(KEY, data.id);
+        msg.textContent = "Perfil salvo com sucesso!";
+        msg.className = "msg-success";
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.className = "msg-error";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    loadProfile();
+  </script>
+</body>
+</html>
