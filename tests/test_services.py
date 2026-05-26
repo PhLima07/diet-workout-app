@@ -33,3 +33,24 @@ async def test_usda_search_empty_on_http_error():
         mock_get.return_value = httpx.Response(500, json={})
         result = await search_foods("xyz_nonexistent")
     assert result == []
+
+async def test_exercise_search_returns_exercises():
+    from services.exercise_service import search_exercises
+    mock_response = [
+        {"name": "barbell squat", "bodyPart": "upper legs", "target": "quads", "equipment": "barbell"}
+    ]
+    with patch("services.exercise_service.RAPIDAPI_KEY", "test-key"), \
+         patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = httpx.Response(200, json=mock_response)
+        result = await search_exercises("upper legs")
+    assert len(result) == 1
+    assert result[0]["name"] == "barbell squat"
+    assert result[0]["bodyPart"] == "upper legs"
+
+async def test_exercise_search_empty_on_error():
+    from services.exercise_service import search_exercises
+    with patch("services.exercise_service.RAPIDAPI_KEY", "test-key"), \
+         patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = httpx.Response(403, json={})
+        result = await search_exercises("chest")
+    assert result == []
