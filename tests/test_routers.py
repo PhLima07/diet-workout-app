@@ -122,3 +122,53 @@ def test_get_diet_plan_by_id():
     resp = client.get("/diet/1")
     assert resp.status_code == 200
     assert resp.json()["id"] == 1
+
+# ── Workout router ────────────────────────────────────────────────────────────
+
+def test_generate_workout_requires_existing_profile():
+    resp = client.post("/workout/generate", json={"user_id": 999, "days_per_week": 4, "focus": ""})
+    assert resp.status_code == 404
+
+def test_generate_workout_saves_and_returns_plan():
+    client.post("/profile/", json={
+        "name": "Pedro", "age": 21, "weight_kg": 75.0, "height_cm": 178.0,
+        "goal": "ganhar massa", "dietary_restrictions": "", "fitness_level": "intermediário"
+    })
+    with patch("routers.workout.generate_workout_plan", new_callable=AsyncMock) as mock_gen, \
+         patch("routers.workout.search_exercises", new_callable=AsyncMock) as mock_exs:
+        mock_exs.return_value = []
+        mock_gen.return_value = "# Treino 4x\nDia A: ..."
+        resp = client.post("/workout/generate", json={"user_id": 1, "days_per_week": 4, "focus": "hipertrofia"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["content"] == "# Treino 4x\nDia A: ..."
+    assert data["focus"] == "hipertrofia"
+    assert data["user_id"] == 1
+
+def test_generate_workout_uses_goal_when_focus_empty():
+    client.post("/profile/", json={
+        "name": "Pedro", "age": 21, "weight_kg": 75.0, "height_cm": 178.0,
+        "goal": "emagrecimento", "dietary_restrictions": "", "fitness_level": "iniciante"
+    })
+    with patch("routers.workout.generate_workout_plan", new_callable=AsyncMock) as mock_gen, \
+         patch("routers.workout.search_exercises", new_callable=AsyncMock) as mock_exs:
+        mock_exs.return_value = []
+        mock_gen.return_value = "# Treino"
+        resp = client.post("/workout/generate", json={"user_id": 1, "days_per_week": 3, "focus": ""})
+    assert resp.status_code == 200
+    assert resp.json()["focus"] == "emagrecimento"
+
+def test_workout_history_lists_plans():
+    client.post("/profile/", json={
+        "name": "Pedro", "age": 21, "weight_kg": 75.0, "height_cm": 178.0,
+        "goal": "ganhar massa", "dietary_restrictions": "", "fitness_level": "intermediário"
+    })
+    with patch("routers.workout.generate_workout_plan", new_callable=AsyncMock) as mock_gen, \
+         patch("routers.workout.search_exercises", new_callable=AsyncMock) as mock_exs:
+        mock_exs.return_value = []
+        mock_gen.return_value = "# Treino"
+        client.post("/workout/generate", json={"user_id": 1, "days_per_week": 4, "focus": "força"})
+        client.post("/workout/generate", json={"user_id": 1, "days_per_week": 3, "focus": "cardio"})
+    resp = client.get("/workout/history/1")
+    assert resp.status_code == 200
+    assert len(resp.json()) == 2
