@@ -54,3 +54,53 @@ async def test_exercise_search_empty_on_error():
         mock_get.return_value = httpx.Response(403, json={})
         result = await search_exercises("chest")
     assert result == []
+
+async def test_generate_diet_plan_returns_final_refined_plan():
+    from services.claude_service import generate_diet_plan
+    profile = {
+        "name": "Pedro", "age": 21, "weight_kg": 75.0, "height_cm": 178.0,
+        "goal": "ganhar massa muscular", "dietary_restrictions": "",
+        "fitness_level": "intermediário", "sex": "masculino",
+    }
+    foods_context = [
+        {"description": "Frango grelhado", "calories": 165, "protein_g": 31.0, "carbs_g": 0.0, "fat_g": 3.6}
+    ]
+
+    def make_mock(text):
+        return type("Msg", (), {"content": [type("Block", (), {"text": text})()]})()
+
+    with patch("services.claude_service._client") as mock_client:
+        mock_client.messages.create = AsyncMock(side_effect=[
+            make_mock("# Rascunho dieta\nDia 1: frango..."),
+            make_mock("Problemas: calorias abaixo do necessário para ganho de massa."),
+            make_mock("# Dieta refinada\nDia 1: frango + arroz..."),
+        ])
+        result = await generate_diet_plan(profile, foods_context, days=7, meals_per_day=4)
+
+    assert result == "# Dieta refinada\nDia 1: frango + arroz..."
+    assert mock_client.messages.create.call_count == 3
+
+async def test_generate_workout_plan_returns_final_refined_plan():
+    from services.claude_service import generate_workout_plan
+    profile = {
+        "name": "Pedro", "age": 21, "weight_kg": 75.0, "height_cm": 178.0,
+        "goal": "ganhar massa muscular", "dietary_restrictions": "",
+        "fitness_level": "intermediário",
+    }
+    exercises_context = [
+        {"name": "barbell squat", "bodyPart": "upper legs", "target": "quads", "equipment": "barbell"}
+    ]
+
+    def make_mock(text):
+        return type("Msg", (), {"content": [type("Block", (), {"text": text})()]})()
+
+    with patch("services.claude_service._client") as mock_client:
+        mock_client.messages.create = AsyncMock(side_effect=[
+            make_mock("# Rascunho treino\nDia A: agachamento..."),
+            make_mock("Problemas: volume excessivo para intermediário, sem progressão clara."),
+            make_mock("# Treino refinado\nDia A: agachamento 4x8..."),
+        ])
+        result = await generate_workout_plan(profile, exercises_context, days_per_week=4, focus="hipertrofia")
+
+    assert result == "# Treino refinado\nDia A: agachamento 4x8..."
+    assert mock_client.messages.create.call_count == 3
