@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import String, Integer, Float, Text, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
@@ -14,6 +14,8 @@ class UserProfile(Base):
     goal: Mapped[str] = mapped_column(String(200))
     dietary_restrictions: Mapped[str] = mapped_column(String(300), default="")
     fitness_level: Mapped[str] = mapped_column(String(50))
+    sex: Mapped[str] = mapped_column(String(10), default="masculino")
+    available_equipment: Mapped[str] = mapped_column(String(300), default="")
 
     diet_plans: Mapped[list["DietPlan"]] = relationship(back_populates="user")
     workout_plans: Mapped[list["WorkoutPlan"]] = relationship(back_populates="user")
@@ -27,6 +29,8 @@ class UserProfile(Base):
             "goal": self.goal,
             "dietary_restrictions": self.dietary_restrictions,
             "fitness_level": self.fitness_level,
+            "sex": self.sex,
+            "available_equipment": self.available_equipment,
         }
 
 class DietPlan(Base):
@@ -34,7 +38,7 @@ class DietPlan(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("user_profiles.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     content: Mapped[str] = mapped_column(Text)
     calories_target: Mapped[int] = mapped_column(Integer)
 
@@ -45,7 +49,7 @@ class WorkoutPlan(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("user_profiles.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     content: Mapped[str] = mapped_column(Text)
     focus: Mapped[str] = mapped_column(String(100))
 

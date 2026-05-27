@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dieta — Planner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="profile.html">Perfil</a>
+    <a href="diet.html" class="active">Dieta</a>
+    <a href="workout.html">Treino</a>
+    <a href="history.html">Histórico</a>
+  </nav>
+  <div class="container">
+    <h1>Gerar Plano de Dieta</h1>
+    <div class="card" style="background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.3)">
+      <p style="color:#fbbf24;font-size:0.85rem">⚠️ <strong>Aviso:</strong> Este plano é gerado por IA para uso pessoal e informativo. Consulte um nutricionista antes de fazer mudanças significativas na sua alimentação.</p>
+    </div>
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label>Duração do plano</label>
+          <select id="days">
+            <option value="3">3 dias</option>
+            <option value="7" selected>7 dias</option>
+            <option value="14">14 dias</option>
+          </select>
+        </div>
+        <div>
+          <label>Refeições por dia</label>
+          <select id="meals_per_day">
+            <option value="3">3 refeições</option>
+            <option value="4" selected>4 refeições</option>
+            <option value="5">5 refeições</option>
+            <option value="6">6 refeições</option>
+          </select>
+        </div>
+      </div>
+      <button id="generateBtn">Gerar Dieta com Claude + USDA</button>
+      <p id="status"></p>
+    </div>
+    <div id="result" style="display:none" class="card">
+      <h2 style="margin-bottom:1rem">Plano Gerado</h2>
+      <div id="planContent" class="prose"></div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="api.js"></script>
+  <script>
+    document.getElementById("generateBtn").addEventListener("click", async () => {
+      const profileId = localStorage.getItem("profile_id");
+      const btn = document.getElementById("generateBtn");
+      const status = document.getElementById("status");
+
+      if (!profileId) {
+        status.textContent = "Cadastre seu perfil primeiro!";
+        status.className = "msg-error";
+        return;
+      }
+
+      btn.disabled = true;
+      status.textContent = "Consultando USDA e gerando com Claude... (pode levar ~30s)";
+      status.className = "loading";
+      document.getElementById("result").style.display = "none";
+
+      try {
+        const data = await apiPost("/diet/generate", {
+          user_id: parseInt(profileId),
+          days: parseInt(document.getElementById("days").value),
+          meals_per_day: parseInt(document.getElementById("meals_per_day").value),
+        });
+        document.getElementById("planContent").innerHTML = marked.parse(data.content);
+        document.getElementById("result").style.display = "block";
+        status.textContent = `Plano gerado! Meta: ${data.calories_target} kcal/dia`;
+        status.className = "msg-success";
+      } catch (err) {
+        status.textContent = err.message;
+        status.className = "msg-error";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

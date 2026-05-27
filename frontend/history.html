@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Histórico — Planner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="profile.html">Perfil</a>
+    <a href="diet.html">Dieta</a>
+    <a href="workout.html">Treino</a>
+    <a href="history.html" class="active">Histórico</a>
+  </nav>
+  <div class="container">
+    <h1>Histórico de Planos</h1>
+    <h2 style="margin-bottom:1rem">Dietas</h2>
+    <div id="dietHistory"><p class="loading">Carregando...</p></div>
+    <h2 style="margin:1.5rem 0 1rem">Treinos</h2>
+    <div id="workoutHistory"><p class="loading">Carregando...</p></div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="api.js"></script>
+  <script>
+    const profileId = localStorage.getItem("profile_id");
+
+    function renderPlans(plans, containerId, type) {
+      const el = document.getElementById(containerId);
+      if (!plans.length) {
+        el.innerHTML = `<p style="color:var(--muted)">Nenhum plano de ${type} gerado ainda. <a href="${type === 'dieta' ? 'diet' : 'workout'}.html" style="color:var(--primary)">Gerar agora →</a></p>`;
+        return;
+      }
+      el.innerHTML = plans.map(p => `
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="badge">${type === 'dieta' ? p.calories_target + ' kcal/dia' : p.focus}</span>
+            <span style="color:var(--muted);font-size:0.8rem">${new Date(p.created_at).toLocaleDateString("pt-BR", {day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}</span>
+          </div>
+          <details style="margin-top:0.5rem">
+            <summary>Ver plano completo</summary>
+            <div class="prose" style="margin-top:0.75rem">${marked.parse(p.content)}</div>
+          </details>
+        </div>
+      `).join("");
+    }
+
+    if (!profileId) {
+      document.getElementById("dietHistory").innerHTML = '<p class="msg-error">Cadastre seu perfil primeiro.</p>';
+      document.getElementById("workoutHistory").innerHTML = "";
+    } else {
+      apiGet(`/diet/history/${profileId}`)
+        .then(d => renderPlans(d, "dietHistory", "dieta"))
+        .catch(() => { document.getElementById("dietHistory").innerHTML = '<p class="msg-error">Erro ao carregar.</p>'; });
+
+      apiGet(`/workout/history/${profileId}`)
+        .then(d => renderPlans(d, "workoutHistory", "treino"))
+        .catch(() => { document.getElementById("workoutHistory").innerHTML = '<p class="msg-error">Erro ao carregar.</p>'; });
+    }
+  </script>
+</body>
+</html>
