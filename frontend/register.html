@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Criar Conta — Planner</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+</head>
+<body>
+  <div class="container" style="max-width:400px;margin-top:4rem">
+    <h1>Diet & Workout Planner</h1>
+    <div class="card">
+      <h2 style="margin-bottom:1.5rem">Criar conta</h2>
+      <form id="registerForm">
+        <label>Email</label>
+        <input type="email" id="email" required placeholder="seu@email.com">
+        <label>Senha</label>
+        <input type="password" id="password" required placeholder="mínimo 6 caracteres" minlength="6">
+        <button type="submit" id="registerBtn">Criar conta</button>
+        <p id="msg"></p>
+      </form>
+      <p style="margin-top:1rem;font-size:0.875rem;color:var(--muted)">
+        Já tem conta? <a href="login.html" style="color:var(--primary)">Entrar →</a>
+      </p>
+    </div>
+  </div>
+  <script>
+    getSession().then(s => { if (s) window.location.href = "/index.html"; });
+
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("registerBtn");
+      const msg = document.getElementById("msg");
+      btn.disabled = true;
+      msg.textContent = "";
+      try {
+        const { error } = await _sb.auth.signUp({
+          email: document.getElementById("email").value,
+          password: document.getElementById("password").value,
+        });
+        if (error) throw error;
+        msg.textContent = "Conta criada! Redirecionando...";
+        msg.className = "msg-success";
+        setTimeout(() => window.location.href = "/index.html", 1500);
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.className = "msg-error";
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
