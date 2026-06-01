@@ -34,11 +34,9 @@ class WorkoutPlanOut(BaseModel):
     model_config = {"from_attributes": True}
 
 class GenerateDietRequest(BaseModel):
-    user_id: int
     days: int = 7
     meals_per_day: int = 4
 
 class GenerateWorkoutRequest(BaseModel):
-    user_id: int
     days_per_week: int = 4
     focus: str = ""
