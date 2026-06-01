@@ -22,7 +22,7 @@ def test_tables_created(engine):
 def test_user_profile_columns(engine):
     cols = {c["name"] for c in inspect(engine).get_columns("user_profiles")}
     assert {"id", "name", "age", "weight_kg", "height_cm", "goal", "dietary_restrictions",
-            "fitness_level", "sex", "available_equipment"} <= cols
+            "fitness_level", "sex", "available_equipment", "supabase_user_id"} <= cols
 
 def test_diet_plan_columns(engine):
     cols = {c["name"] for c in inspect(engine).get_columns("diet_plans")}
@@ -35,9 +35,12 @@ def test_workout_plan_columns(engine):
 def test_insert_profile(engine):
     Session = sessionmaker(bind=engine)
     db = Session()
-    p = UserProfile(name="Pedro", age=21, weight_kg=75.0, height_cm=178.0,
-                    goal="ganhar massa", dietary_restrictions="", fitness_level="intermediário",
-                    sex="masculino", available_equipment="")
+    p = UserProfile(
+        name="Pedro", age=21, weight_kg=75.0, height_cm=178.0,
+        goal="ganhar massa", dietary_restrictions="", fitness_level="intermediário",
+        sex="masculino", available_equipment="",
+        supabase_user_id="550e8400-e29b-41d4-a716-446655440000",
+    )
     db.add(p)
     db.commit()
     assert p.id == 1
