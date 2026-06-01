@@ -1,13 +1,15 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from sqlalchemy.pool import NullPool
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-_DATA_DIR = os.path.join(_HERE, "..", "data")
-os.makedirs(_DATA_DIR, exist_ok=True)
-DATABASE_URL = f"sqlite:///{os.path.join(_DATA_DIR, 'app.db')}"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/app.db")
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL, poolclass=NullPool)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 class Base(DeclarativeBase):
