@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Treino — Planner</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
 </head>
 <body>
   <nav>
@@ -13,6 +16,7 @@
     <a href="diet.html">Dieta</a>
     <a href="workout.html" class="active">Treino</a>
     <a href="history.html">Histórico</a>
+    <a href="#" onclick="logout()" style="margin-left:auto;color:var(--muted)">Sair</a>
   </nav>
   <div class="container">
     <h1>Gerar Plano de Treino</h1>
@@ -46,38 +50,30 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="api.js"></script>
   <script>
-    document.getElementById("generateBtn").addEventListener("click", async () => {
-      const profileId = localStorage.getItem("profile_id");
-      const btn = document.getElementById("generateBtn");
-      const status = document.getElementById("status");
-
-      if (!profileId) {
-        status.textContent = "Cadastre seu perfil primeiro!";
-        status.className = "msg-error";
-        return;
-      }
-
-      btn.disabled = true;
-      status.textContent = "Buscando exercícios e gerando com Claude... (pode levar ~30s)";
-      status.className = "loading";
-      document.getElementById("result").style.display = "none";
-
-      try {
-        const data = await apiPost("/workout/generate", {
-          user_id: parseInt(profileId),
-          days_per_week: parseInt(document.getElementById("days_per_week").value),
-          focus: document.getElementById("focus").value,
-        });
-        document.getElementById("planContent").innerHTML = marked.parse(data.content);
-        document.getElementById("result").style.display = "block";
-        status.textContent = `Plano gerado! Foco: ${data.focus}`;
-        status.className = "msg-success";
-      } catch (err) {
-        status.textContent = err.message;
-        status.className = "msg-error";
-      } finally {
-        btn.disabled = false;
-      }
+    requireAuth().then(() => {
+      document.getElementById("generateBtn").addEventListener("click", async () => {
+        const btn = document.getElementById("generateBtn");
+        const status = document.getElementById("status");
+        btn.disabled = true;
+        status.textContent = "Buscando exercícios e gerando com Claude... (pode levar ~30s)";
+        status.className = "loading";
+        document.getElementById("result").style.display = "none";
+        try {
+          const data = await apiPost("/workout/generate", {
+            days_per_week: parseInt(document.getElementById("days_per_week").value),
+            focus: document.getElementById("focus").value,
+          });
+          document.getElementById("planContent").innerHTML = marked.parse(data.content);
+          document.getElementById("result").style.display = "block";
+          status.textContent = `Plano gerado! Foco: ${data.focus}`;
+          status.className = "msg-success";
+        } catch (err) {
+          status.textContent = err.message;
+          status.className = "msg-error";
+        } finally {
+          btn.disabled = false;
+        }
+      });
     });
   </script>
 </body>

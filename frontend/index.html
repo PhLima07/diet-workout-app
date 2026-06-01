@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Diet & Workout Planner</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
 </head>
 <body>
   <nav>
@@ -13,6 +16,7 @@
     <a href="diet.html">Dieta</a>
     <a href="workout.html">Treino</a>
     <a href="history.html">Histórico</a>
+    <a href="#" onclick="logout()" style="margin-left:auto;color:var(--muted)">Sair</a>
   </nav>
   <div class="container">
     <h1>Diet & Workout Planner</h1>
@@ -48,11 +52,8 @@
   </div>
   <script src="api.js"></script>
   <script>
-    const profileId = localStorage.getItem("profile_id");
-    if (!profileId) {
-      document.getElementById("noProfile").style.display = "block";
-    } else {
-      apiGet(`/profile/${profileId}`).then(d => {
+    requireAuth().then(() => {
+      apiGet("/profile/me").then(d => {
         const bmi = (d.weight_kg / ((d.height_cm / 100) ** 2)).toFixed(1);
         document.getElementById("greeting").textContent = `Olá, ${d.name}!`;
         document.getElementById("profileSummary").textContent =
@@ -60,10 +61,9 @@
         document.getElementById("profileCard").style.display = "block";
         document.getElementById("actions").style.display = "block";
       }).catch(() => {
-        localStorage.removeItem("profile_id");
         document.getElementById("noProfile").style.display = "block";
       });
-    }
+    });
   </script>
 </body>
 </html>

@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Histórico — Planner</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
 </head>
 <body>
   <nav>
@@ -13,6 +16,7 @@
     <a href="diet.html">Dieta</a>
     <a href="workout.html">Treino</a>
     <a href="history.html" class="active">Histórico</a>
+    <a href="#" onclick="logout()" style="margin-left:auto;color:var(--muted)">Sair</a>
   </nav>
   <div class="container">
     <h1>Histórico de Planos</h1>
@@ -24,8 +28,6 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="api.js"></script>
   <script>
-    const profileId = localStorage.getItem("profile_id");
-
     function renderPlans(plans, containerId, type) {
       const el = document.getElementById(containerId);
       if (!plans.length) {
@@ -46,18 +48,15 @@
       `).join("");
     }
 
-    if (!profileId) {
-      document.getElementById("dietHistory").innerHTML = '<p class="msg-error">Cadastre seu perfil primeiro.</p>';
-      document.getElementById("workoutHistory").innerHTML = "";
-    } else {
-      apiGet(`/diet/history/${profileId}`)
+    requireAuth().then(() => {
+      apiGet("/diet/history")
         .then(d => renderPlans(d, "dietHistory", "dieta"))
         .catch(() => { document.getElementById("dietHistory").innerHTML = '<p class="msg-error">Erro ao carregar.</p>'; });
 
-      apiGet(`/workout/history/${profileId}`)
+      apiGet("/workout/history")
         .then(d => renderPlans(d, "workoutHistory", "treino"))
         .catch(() => { document.getElementById("workoutHistory").innerHTML = '<p class="msg-error">Erro ao carregar.</p>'; });
-    }
+    });
   </script>
 </body>
 </html>

@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Perfil — Planner</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
 </head>
 <body>
   <nav>
@@ -13,6 +16,7 @@
     <a href="diet.html">Dieta</a>
     <a href="workout.html">Treino</a>
     <a href="history.html">Histórico</a>
+    <a href="#" onclick="logout()" style="margin-left:auto;color:var(--muted)">Sair</a>
   </nav>
   <div class="container">
     <h1>Meu Perfil</h1>
@@ -48,13 +52,11 @@
   </div>
   <script src="api.js"></script>
   <script>
-    const KEY = "profile_id";
-    const profileId = localStorage.getItem(KEY);
+    let hasProfile = false;
 
-    async function loadProfile() {
-      if (!profileId) return;
-      try {
-        const d = await apiGet(`/profile/${profileId}`);
+    requireAuth().then(() => {
+      apiGet("/profile/me").then(d => {
+        hasProfile = true;
         document.getElementById("name").value = d.name;
         document.getElementById("age").value = d.age;
         document.getElementById("weight_kg").value = d.weight_kg;
@@ -64,8 +66,8 @@
         document.getElementById("fitness_level").value = d.fitness_level;
         document.getElementById("sex").value = d.sex || "masculino";
         document.getElementById("available_equipment").value = d.available_equipment || "";
-      } catch (_) {}
-    }
+      }).catch(() => {});
+    });
 
     document.getElementById("profileForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -85,10 +87,10 @@
         available_equipment: document.getElementById("available_equipment").value,
       };
       try {
-        const data = profileId
-          ? await apiPut(`/profile/${profileId}`, body)
+        hasProfile
+          ? await apiPut("/profile/me", body)
           : await apiPost("/profile/", body);
-        localStorage.setItem(KEY, data.id);
+        hasProfile = true;
         msg.textContent = "Perfil salvo com sucesso!";
         msg.className = "msg-success";
       } catch (err) {
@@ -98,8 +100,6 @@
         btn.disabled = false;
       }
     });
-
-    loadProfile();
   </script>
 </body>
 </html>
