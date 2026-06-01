@@ -8,7 +8,9 @@ security = HTTPBearer()
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> str:
-    secret = os.getenv("SUPABASE_JWT_SECRET", "")
+    secret = os.getenv("SUPABASE_JWT_SECRET")
+    if not secret:
+        raise HTTPException(status_code=500, detail="SUPABASE_JWT_SECRET não configurado")
     try:
         payload = jwt.decode(
             credentials.credentials,

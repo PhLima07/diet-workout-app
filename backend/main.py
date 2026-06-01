@@ -11,7 +11,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Diet & Workout Planner")
 
-origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",")]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
