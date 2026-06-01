@@ -2,6 +2,7 @@ import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
+from dependencies import get_current_user
 from models import UserProfile, WorkoutPlan
 from schemas import GenerateWorkoutRequest, WorkoutPlanOut
 from services.claude_service import generate_workout_plan
@@ -10,8 +11,12 @@ from services.exercise_service import search_exercises, VALID_BODY_PARTS
 router = APIRouter(prefix="/workout", tags=["workout"])
 
 @router.post("/generate", response_model=WorkoutPlanOut)
-async def generate(req: GenerateWorkoutRequest, db: Session = Depends(get_db)):
-    profile = db.get(UserProfile, req.user_id)
+async def generate(
+    req: GenerateWorkoutRequest,
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    profile = db.query(UserProfile).filter(UserProfile.supabase_user_id == user_id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Perfil não encontrado")
 
@@ -34,18 +39,33 @@ async def generate(req: GenerateWorkoutRequest, db: Session = Depends(get_db)):
     db.refresh(plan)
     return plan
 
-@router.get("/history/{user_id}", response_model=list[WorkoutPlanOut])
-def get_history(user_id: int, db: Session = Depends(get_db)):
+@router.get("/history", response_model=list[WorkoutPlanOut])
+def get_history(
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    profile = db.query(UserProfile).filter(UserProfile.supabase_user_id == user_id).first()
+    if not profile:
+        return []
     return (
         db.query(WorkoutPlan)
-        .filter(WorkoutPlan.user_id == user_id)
+        .filter(WorkoutPlan.user_id == profile.id)
         .order_by(WorkoutPlan.created_at.desc())
         .all()
     )
 
 @router.get("/{plan_id}", response_model=WorkoutPlanOut)
-def get_plan(plan_id: int, db: Session = Depends(get_db)):
-    plan = db.get(WorkoutPlan, plan_id)
+def get_plan(
+    plan_id: int,
+    user_id: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    profile = db.query(UserProfile).filter(UserProfile.supabase_user_id == user_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Perfil não encontrado")
+    plan = db.query(WorkoutPlan).filter(
+        WorkoutPlan.id == plan_id, WorkoutPlan.user_id == profile.id
+    ).first()
     if not plan:
         raise HTTPException(status_code=404, detail="Plano não encontrado")
     return plan
