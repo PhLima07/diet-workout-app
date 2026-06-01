@@ -10,12 +10,15 @@ from routers import workout as workout_router
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Diet & Workout Planner")
+
+origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8000"],
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 app.include_router(profile_router.router)
 app.include_router(diet_router.router)
 app.include_router(workout_router.router)
