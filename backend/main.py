@@ -7,7 +7,10 @@ from routers import profile as profile_router
 from routers import diet as diet_router
 from routers import workout as workout_router
 
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception:
+    pass
 
 app = FastAPI(title="Diet & Workout Planner")
 
