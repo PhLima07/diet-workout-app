@@ -44,14 +44,35 @@
           <option value="feminino">Feminino</option>
         </select>
         <label>Equipamentos disponíveis</label>
-        <input type="text" id="available_equipment" placeholder="ex: halteres, barra, elástico (vazio = sem equipamento)">
+        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.5rem">
+          <button type="button" class="preset-btn" onclick="setEquip('academia completa: barras, halteres, máquinas, cabos, leg press, smith, rack, banco, polia')">🏋️ Academia completa</button>
+          <button type="button" class="preset-btn" onclick="setEquip('barras, halteres, rack, banco, cabos')">🏅 Academia básica</button>
+          <button type="button" class="preset-btn" onclick="setEquip('halteres, banco, elásticos')">🏠 Casa — halteres</button>
+          <button type="button" class="preset-btn" onclick="setEquip('sem equipamento, apenas peso corporal')">🤸 Sem equipamento</button>
+        </div>
+        <input type="text" id="available_equipment" placeholder="ou descreva livremente...">
         <button type="submit" id="saveBtn">Salvar Perfil</button>
         <p id="msg"></p>
       </form>
     </div>
   </div>
   <script src="api.js"></script>
+  <style>
+    .preset-btn {
+      background: var(--surface); color: var(--muted); border: 1px solid var(--border);
+      padding: 0.3rem 0.7rem; border-radius: 20px; cursor: pointer;
+      font-size: 0.8rem; font-weight: 500; transition: all 0.15s;
+    }
+    .preset-btn:hover { border-color: var(--primary); color: var(--text); background: var(--surface); }
+    .preset-btn.active { border-color: var(--primary); color: var(--primary); background: rgba(99,102,241,0.1); }
+  </style>
   <script>
+    function setEquip(value) {
+      document.getElementById("available_equipment").value = value;
+      document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+      event.target.classList.add("active");
+    }
+
     let hasProfile = false;
 
     requireAuth().then(() => {
