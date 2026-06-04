@@ -6,11 +6,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer()
 
-_SUPABASE_URL = os.getenv("SUPABASE_URL", "https://hvoyyydymmhedqhwocab.supabase.co")
-_SUPABASE_ANON_KEY = os.getenv(
-    "SUPABASE_ANON_KEY",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2b3l5eXlkeW1taGVkcWh3b2NhYiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzgwNDk4Mzg2LCJleHAiOjIwOTYwNzQzODZ9.TZu8QWOiMQhv4NctxjPHdVC9tdDRfe9IbwmCbOkii4s",
-)
+_SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+_SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 
 
 async def _fetch_supabase_user(token: str) -> Optional[dict]:
