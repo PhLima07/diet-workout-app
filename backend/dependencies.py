@@ -1,32 +1,31 @@
 import os
-import base64
-import jwt
+from typing import Optional
+import httpx
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer()
 
-def _get_secret() -> bytes:
-    raw = os.getenv("SUPABASE_JWT_SECRET")
-    if not raw:
-        raise HTTPException(status_code=500, detail="SUPABASE_JWT_SECRET não configurado")
-    try:
-        return base64.b64decode(raw)
-    except Exception:
-        return raw.encode()
+_SUPABASE_URL = os.getenv("SUPABASE_URL", "https://hvoyyydymmhedqhwocab.supabase.co")
+_SUPABASE_ANON_KEY = os.getenv(
+    "SUPABASE_ANON_KEY",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2b3l5eXlkeW1taGVkcWh3b2NhYiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzgwNDk4Mzg2LCJleHAiOjIwOTYwNzQzODZ9.TZu8QWOiMQhv4NctxjPHdVC9tdDRfe9IbwmCbOkii4s",
+)
 
-def get_current_user(
+
+async def _fetch_supabase_user(token: str) -> Optional[dict]:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(
+            f"{_SUPABASE_URL}/auth/v1/user",
+            headers={"Authorization": f"Bearer {token}", "apikey": _SUPABASE_ANON_KEY},
+        )
+    return resp.json() if resp.status_code == 200 else None
+
+
+async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> str:
-    try:
-        payload = jwt.decode(
-            credentials.credentials,
-            _get_secret(),
-            algorithms=["HS256"],
-            audience="authenticated",
-        )
-        return payload["sub"]
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expirado")
-    except jwt.InvalidTokenError:
+    user = await _fetch_supabase_user(credentials.credentials)
+    if not user or "id" not in user:
         raise HTTPException(status_code=401, detail="Token inválido")
+    return user["id"]
