@@ -1,3 +1,4 @@
+import json
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -46,6 +47,13 @@ PROFILE_BODY = {
     "goal": "ganhar massa", "dietary_restrictions": "", "fitness_level": "intermediário",
 }
 
+def _parse_sse(text: str) -> list[dict]:
+    events = []
+    for line in text.split("\n"):
+        if line.startswith("data: "):
+            events.append(json.loads(line[6:]))
+    return events
+
 # ── Profile ──────────────────────────────────────────────────────────────────
 
 def test_create_profile():
@@ -77,23 +85,35 @@ def test_generate_diet_requires_profile():
 
 def test_generate_diet_saves_and_returns_plan():
     client.post("/profile/", json=PROFILE_BODY)
-    with patch("routers.diet.generate_diet_plan", new_callable=AsyncMock) as mock_gen, \
+
+    async def mock_stream(*args, **kwargs):
+        yield '{"type":"status","message":"Gerando rascunho... ⏳"}'
+        yield '{"type":"status","message":"Revisando... ⏳"}'
+        yield '{"type":"status","message":"Refinando plano final... ⏳"}'
+        yield '{"type":"done","content":"# Dieta gerada\\nDia 1: ..."}'
+
+    with patch("routers.diet.generate_diet_plan_stream", side_effect=mock_stream), \
          patch("routers.diet.search_foods", new_callable=AsyncMock) as mock_foods:
         mock_foods.return_value = []
-        mock_gen.return_value = "# Dieta gerada\nDia 1: ..."
         resp = client.post("/diet/generate", json={"days": 7, "meals_per_day": 4})
+
     assert resp.status_code == 200
-    data = resp.json()
-    assert data["content"] == "# Dieta gerada\nDia 1: ..."
+    events = _parse_sse(resp.text)
+    saved = next(e for e in events if e["type"] == "saved")
+    assert saved["content"] == "# Dieta gerada\nDia 1: ..."
 
 def test_diet_history_lists_plans():
     client.post("/profile/", json=PROFILE_BODY)
-    with patch("routers.diet.generate_diet_plan", new_callable=AsyncMock) as mock_gen, \
+
+    async def mock_stream(*args, **kwargs):
+        yield '{"type":"done","content":"# Dieta"}'
+
+    with patch("routers.diet.generate_diet_plan_stream", side_effect=mock_stream), \
          patch("routers.diet.search_foods", new_callable=AsyncMock) as mock_foods:
         mock_foods.return_value = []
-        mock_gen.return_value = "# Dieta"
         client.post("/diet/generate", json={"days": 7, "meals_per_day": 4})
         client.post("/diet/generate", json={"days": 3, "meals_per_day": 3})
+
     resp = client.get("/diet/history")
     assert resp.status_code == 200
     assert len(resp.json()) == 2
@@ -106,33 +126,50 @@ def test_generate_workout_requires_profile():
 
 def test_generate_workout_saves_and_returns_plan():
     client.post("/profile/", json=PROFILE_BODY)
-    with patch("routers.workout.generate_workout_plan", new_callable=AsyncMock) as mock_gen, \
+
+    async def mock_stream(*args, **kwargs):
+        yield '{"type":"status","message":"Gerando rascunho... ⏳"}'
+        yield '{"type":"done","content":"# Treino 4x\\nDia A: ..."}'
+
+    with patch("routers.workout.generate_workout_plan_stream", side_effect=mock_stream), \
          patch("routers.workout.search_exercises", new_callable=AsyncMock) as mock_exs:
         mock_exs.return_value = []
-        mock_gen.return_value = "# Treino 4x\nDia A: ..."
         resp = client.post("/workout/generate", json={"days_per_week": 4, "focus": "hipertrofia"})
+
     assert resp.status_code == 200
-    assert resp.json()["content"] == "# Treino 4x\nDia A: ..."
-    assert resp.json()["focus"] == "hipertrofia"
+    events = _parse_sse(resp.text)
+    saved = next(e for e in events if e["type"] == "saved")
+    assert saved["content"] == "# Treino 4x\nDia A: ..."
+    assert saved["focus"] == "hipertrofia"
 
 def test_generate_workout_uses_goal_when_focus_empty():
     client.post("/profile/", json=PROFILE_BODY)
-    with patch("routers.workout.generate_workout_plan", new_callable=AsyncMock) as mock_gen, \
+
+    async def mock_stream(*args, **kwargs):
+        yield '{"type":"done","content":"# Treino"}'
+
+    with patch("routers.workout.generate_workout_plan_stream", side_effect=mock_stream), \
          patch("routers.workout.search_exercises", new_callable=AsyncMock) as mock_exs:
         mock_exs.return_value = []
-        mock_gen.return_value = "# Treino"
         resp = client.post("/workout/generate", json={"days_per_week": 3, "focus": ""})
+
     assert resp.status_code == 200
-    assert resp.json()["focus"] == "ganhar massa"
+    events = _parse_sse(resp.text)
+    saved = next(e for e in events if e["type"] == "saved")
+    assert saved["focus"] == "ganhar massa"
 
 def test_workout_history_lists_plans():
     client.post("/profile/", json=PROFILE_BODY)
-    with patch("routers.workout.generate_workout_plan", new_callable=AsyncMock) as mock_gen, \
+
+    async def mock_stream(*args, **kwargs):
+        yield '{"type":"done","content":"# Treino"}'
+
+    with patch("routers.workout.generate_workout_plan_stream", side_effect=mock_stream), \
          patch("routers.workout.search_exercises", new_callable=AsyncMock) as mock_exs:
         mock_exs.return_value = []
-        mock_gen.return_value = "# Treino"
         client.post("/workout/generate", json={"days_per_week": 4, "focus": "força"})
         client.post("/workout/generate", json={"days_per_week": 3, "focus": "cardio"})
+
     resp = client.get("/workout/history")
     assert resp.status_code == 200
     assert len(resp.json()) == 2
