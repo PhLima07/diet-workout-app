@@ -29,6 +29,7 @@ else:
             query={"sslmode": "require"},
         ),
         poolclass=NullPool,
+        connect_args={"prepare_threshold": 0},
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

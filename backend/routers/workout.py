@@ -20,18 +20,21 @@ async def generate(
     if not profile:
         raise HTTPException(status_code=404, detail="Perfil não encontrado")
 
-    results = await asyncio.gather(
-        *[search_exercises(part, limit=3) for part in VALID_BODY_PARTS[:6]]
-    )
-    exercises: list[dict] = [ex for sublist in results for ex in sublist]
+    try:
+        results = await asyncio.gather(
+            *[search_exercises(part, limit=3) for part in VALID_BODY_PARTS[:6]]
+        )
+        exercises: list[dict] = [ex for sublist in results for ex in sublist]
 
-    effective_focus = req.focus or profile.goal
-    content = await generate_workout_plan(
-        profile=profile.to_dict(),
-        exercises_context=exercises,
-        days_per_week=req.days_per_week,
-        focus=effective_focus,
-    )
+        effective_focus = req.focus or profile.goal
+        content = await generate_workout_plan(
+            profile=profile.to_dict(),
+            exercises_context=exercises,
+            days_per_week=req.days_per_week,
+            focus=effective_focus,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na geração: {str(e)[:300]}")
 
     plan = WorkoutPlan(user_id=profile.id, content=content, focus=effective_focus)
     db.add(plan)

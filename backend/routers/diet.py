@@ -19,13 +19,16 @@ async def generate(
     if not profile:
         raise HTTPException(status_code=404, detail="Perfil não encontrado")
 
-    foods = await search_foods(profile.goal, max_results=10)
-    content = await generate_diet_plan(
-        profile=profile.to_dict(),
-        foods_context=foods,
-        days=req.days,
-        meals_per_day=req.meals_per_day,
-    )
+    try:
+        foods = await search_foods(profile.goal, max_results=10)
+        content = await generate_diet_plan(
+            profile=profile.to_dict(),
+            foods_context=foods,
+            days=req.days,
+            meals_per_day=req.meals_per_day,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na geração: {str(e)[:300]}")
 
     plan = DietPlan(
         user_id=profile.id,
